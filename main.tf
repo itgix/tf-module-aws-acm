@@ -1,4 +1,5 @@
 resource "aws_acm_certificate" "cert" {
+  count                     = var.enabled ? 1 : 0
   domain_name               = var.hostname
   validation_method         = "DNS"
   subject_alternative_names = [var.wildcard_cert]
@@ -10,7 +11,7 @@ data "aws_route53_zone" "zone" {
 }
 
 resource "aws_route53_record" "cert_validation" {
-  count           = length(aws_acm_certificate.cert.subject_alternative_names) + 1
+  count           = var.enabled ? length(aws_acm_certificate.cert.subject_alternative_names) + 1 : 0
   allow_overwrite = true
   zone_id         = data.aws_route53_zone.zone.zone_id
   name            = element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_name, count.index)
@@ -21,6 +22,7 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 resource "aws_acm_certificate_validation" "cert" {
+  count                   = var.enabled ? 1 : 0
   certificate_arn         = aws_acm_certificate.cert.arn
   validation_record_fqdns = aws_route53_record.cert_validation.*.fqdn
   depends_on              = [aws_acm_certificate.cert]
