@@ -4,21 +4,20 @@ resource "aws_acm_certificate" "cert" {
   subject_alternative_names = [var.wildcard_cert]
 }
 
-# data "aws_route53_zone" "zone" {
-#   name         = var.zone_name
-#   private_zone = false
-# }
+data "aws_route53_zone" "zone" {
+  name         = var.zone_name
+  private_zone = false
+}
 
 resource "aws_route53_record" "cert_validation" {
   count           = length(aws_acm_certificate.cert.subject_alternative_names) + 1
   allow_overwrite = true
-  zone_id         = var.zone_id
+  zone_id         = data.aws_route53_zone.zone.zone_id
   name            = element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_name, count.index)
   type            = element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_type, count.index)
   records         = [element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_value, count.index)]
   ttl             = 60
   depends_on      = [aws_acm_certificate.cert]
-  provider        = var.aws_provider
 }
 
 resource "aws_acm_certificate_validation" "cert" {
