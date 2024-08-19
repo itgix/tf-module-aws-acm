@@ -8,12 +8,14 @@ data "aws_route53_zone" "zone" {
   name         = var.zone_name
   private_zone = false
 
-  # separate provider because the zone is in another AWS account
-  provider = aws.shared_services
+  provider = aws.shared_services # DNS zone is in the shared services account
 }
 
 resource "aws_route53_record" "cert_validation" {
-  count           = length(aws_acm_certificate.cert.subject_alternative_names) + 1
+  count = length(aws_acm_certificate.cert.subject_alternative_names) + 1
+
+  provider = aws.shared_services # DNS zone is in the shared services account
+
   allow_overwrite = true
   zone_id         = data.aws_route53_zone.zone.zone_id
   name            = element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_name, count.index)
@@ -21,9 +23,6 @@ resource "aws_route53_record" "cert_validation" {
   records         = [element(aws_acm_certificate.cert.domain_validation_options.*.resource_record_value, count.index)]
   ttl             = 60
   depends_on      = [aws_acm_certificate.cert]
-
-  # separate provider because the zone is in another AWS account
-  provider = aws.shared_services
 }
 
 resource "aws_acm_certificate_validation" "cert" {
